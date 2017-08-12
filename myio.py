@@ -7,14 +7,27 @@ import json
 # import theano
 import numpy as np
 
-from nn import EmbeddingLayer
-from utils import say, load_embedding_iterator
+# from nn import EmbeddingLayer
+# from utils import say, load_embedding_iterator
+
+
+# this method from https://github.com/taolei87/rcnn/tree/master/code/utils/__init__.py:
+def load_embedding_iterator(path):
+    file_open = gzip.open if path.endswith(".gz") else open
+    with file_open(path) as fin:
+        for line in fin:
+            line = line.strip()
+            if line:
+                parts = line.split()
+                word = parts[0]
+                vals = np.array([float(x) for x in parts[1:]])
+                yield word, vals
 
 
 def read_rationales(path):
     data = []
     fopen = gzip.open if path.endswith(".gz") else open
-    with fopen(path) as fin:
+    with fopen(path, 'rt') as fin:
         for line in fin:
             item = json.loads(line)
             data.append(item)
@@ -24,19 +37,19 @@ def read_rationales(path):
 def read_annotations(path):
     data_x, data_y = [], []
     fopen = gzip.open if path.endswith(".gz") else open
-    with fopen(path) as fin:
+    with fopen(path, 'rt') as fin:
         for line in fin:
             y, sep, x = line.partition("\t")
             x, y = x.split(), y.split()
             if len(x) == 0:
                 continue
-            y = np.asarray([float(v) for v in y], dtype=theano.config.floatX)
+            y = np.asarray([float(v) for v in y], dtype=np.float32)
             data_x.append(x)
             data_y.append(y)
-    say("{} examples loaded from {}\n".format(
+    print("{} examples loaded from {}\n".format(
             len(data_x), path
         ))
-    say("max text length: {}\n".format(
+    print("max text length: {}\n".format(
         max(len(x) for x in data_x)
     ))
     return data_x, data_y
