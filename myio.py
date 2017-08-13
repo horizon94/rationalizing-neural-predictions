@@ -1,4 +1,4 @@
-# from https://github.com/taolei87/rcnn/tree/master/code/rationale
+# adapted from https://github.com/taolei87/rcnn/tree/master/code/rationale
 
 import gzip
 import random
@@ -213,23 +213,25 @@ def read_annotations(path):
 def create_batches(x, y, batch_size, padding_id, sort=True):
     batches_x, batches_y = [], []
     N = len(x)
-    M = (N-1)/batch_size + 1
+    M = (N - 1) // batch_size + 1
+    # M = (N + batch_size - 1) // batch_size
     if sort:
         perm = range(N)
         perm = sorted(perm, key=lambda i: len(x[i]))
         x = [x[i] for i in perm]
         y = [y[i] for i in perm]
-    for i in xrange(M):
+    for i in range(M):
         bx, by = create_one_batch(
-                    x[i*batch_size:(i+1)*batch_size],
-                    y[i*batch_size:(i+1)*batch_size],
-                    padding_id
+                    # batch_size=batch_size,
+                    lstx=x[i*batch_size:(i+1)*batch_size],
+                    lsty=y[i*batch_size:(i+1)*batch_size],
+                    padding_id=padding_id
                 )
         batches_x.append(bx)
         batches_y.append(by)
     if sort:
         random.seed(5817)
-        perm2 = range(M)
+        perm2 = list(range(M))
         random.shuffle(perm2)
         batches_x = [batches_x[i] for i in perm2]
         batches_y = [batches_y[i] for i in perm2]
@@ -237,9 +239,23 @@ def create_batches(x, y, batch_size, padding_id, sort=True):
 
 
 def create_one_batch(lstx, lsty, padding_id):
-    max_len = max(len(x) for x in lstx)
-    assert min(len(x) for x in lstx) > 0
-    bx = np.column_stack([np.pad(x, (max_len-len(x), 0), "constant",
-                         constant_values=padding_id) for x in lstx])
-    by = np.vstack(lsty).astype(theano.config.floatX)
+    """
+    lstx is a list of 1-d LongTensors
+    """
+    batch_size = len(lstx)
+    print('lengths', [x.shape[0] for x in lstx])
+    max_len = max(x.shape[0] for x in lstx)
+    print('max_len', max_len)
+    assert min(x.shape[0] for x in lstx) > 0
+    bx = torch.LongTensor(batch_size, max_len)
+    print('bx.shape', bx.shape)
+    bx.fill_(padding_id)
+    # print('lstx', lstx)
+    for n in range(batch_size):
+        this_len = lstx[n].shape[0]
+        bx[n, :this_len] = lstx[n]
+    # bx = np.column_stack([np.pad(x, (max_len-len(x), 0), "constant",
+    #                      constant_values=padding_id) for x in lstx])
+    # by = np.vstack(lsty).astype(np.float32)
+    by = torch.Tensor(lsty)
     return bx, by

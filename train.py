@@ -7,6 +7,7 @@ import torch
 import numpy as np
 import argparse
 import pickle
+import myio
 from torch import nn, optim, autograd
 
 
@@ -60,7 +61,7 @@ def rand_uniform(shape, min_value, max_value):
     return torch.rand(shape) * (max_value - min_value) + min_value
 
 
-def run(in_train_file_embedded, aspect_idx, max_train_examples):
+def run(in_train_file_embedded, aspect_idx, max_train_examples, batch_size):
     print('loading training data...')
     with open(in_train_file_embedded, 'rb') as f:
         d = pickle.load(f)
@@ -75,7 +76,7 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples):
     idx_by_word = d['idx_by_word']
     if max_train_examples > 0:
         x_idxes = x_idxes[:max_train_examples]
-        yu = y[:max_train_examples]
+        y = y[:max_train_examples]
         x = x[:max_train_examples]
     N = len(x_idxes)
     y_aspect = torch.zeros(N)
@@ -92,13 +93,19 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples):
     # https://github.com/taolei87/rcnn/blob/master/code/nn/initialization.py#L79
     embedding[unk_idx] = rand_uniform((num_hidden,), -0.05, 0.05)
     model = Encoder(embeddings=embedding, num_layers=2)
-    # batches_x, batches_y = create_batches(x, y, batch_size, padding_id, sort=True)
+    pad_idx = idx_by_word['<pad>']
+    batches_x, batches_y = myio.create_batches(x=x_idxes, y=y_aspect, batch_size=batch_size, padding_id=pad_idx)
+    print('len(batches_x)', len(batches_x))
+    print('len(batches_y)', len(batches_y))
+    print('batches_x[0][:3]', batches_x[0][:3])
+    print('batches_y[0][:3]', batches_y[0][:3])
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in-train-file-embedded', type=str, default='data/reviews.aspect1.train.emb')
     parser.add_argument('--aspect-idx', type=int, default=0)
+    parser.add_argument('--batch-size', type=int, default=256)
     parser.add_argument('--max-train-examples', type=int, default=0, help='0 means all')
     parser.add_argument
     args = parser.parse_args()

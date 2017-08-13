@@ -95,7 +95,7 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
     x_idxes = []
     unk_idx = idx_by_word['<unk>']
     for n, ex in enumerate(x):
-        num_words = len(ex)
+        num_words = len(ex[:max_len])
         idxes = torch.LongTensor(num_words)
         idxes.fill_(0)
         for i, word in enumerate(ex[:max_len]):
