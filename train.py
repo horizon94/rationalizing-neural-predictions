@@ -143,7 +143,7 @@ class Generator(nn.Module):
             rationales[:this_len, n] = torch.masked_select(
                 input[:, n].data, rationale_selected[:, n].data.byte()
             )
-        return rationales, rationale_lengths
+        return rationale_selected, rationales, rationale_lengths
 
 
 def run(
@@ -193,12 +193,12 @@ def run(
             batch_size = bx.size()[1]
 
             print('bx.shape', bx.data.shape)
-            rationales, rationale_lengths = gen.forward(bx)
+            rationale_selected, rationales, rationale_lengths = gen.forward(bx)
             print('rationales.shape', rationales.shape)
             out = enc.forward(rationales)
             loss_mse = ((by - out) * (by - out)).sum().sqrt()
-            loss_z1 = rationale_lengths.sum()
-            loss_transitions = 0.0
+            loss_z1 = rationale_lengths.sum().float()
+            loss_transitions = (rationale_selected[1:] - rationale_selected[:-1]).abs().sum().float()
             loss = loss_mse + sparsity * loss_z1 + coherence * loss_transitions
             loss.backward()
             opt.step()
