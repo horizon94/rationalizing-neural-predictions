@@ -247,13 +247,14 @@ def create_one_batch(lstx, lsty, padding_id):
     max_len = max(x.shape[0] for x in lstx)
     print('max_len', max_len)
     assert min(x.shape[0] for x in lstx) > 0
-    bx = torch.LongTensor(batch_size, max_len)
+    # bx = torch.LongTensor(batch_size, max_len)
+    bx = torch.LongTensor(max_len, batch_size)
     print('bx.shape', bx.shape)
     bx.fill_(padding_id)
     # print('lstx', lstx)
     for n in range(batch_size):
         this_len = lstx[n].shape[0]
-        bx[n, :this_len] = lstx[n]
+        bx[:this_len, n] = lstx[n]
     # bx = np.column_stack([np.pad(x, (max_len-len(x), 0), "constant",
     #                      constant_values=padding_id) for x in lstx])
     # by = np.vstack(lsty).astype(np.float32)
