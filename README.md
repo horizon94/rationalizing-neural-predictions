@@ -6,12 +6,9 @@ Note: Tao's original implementation for Theano is at: https://github.com/taolei8
 
 ## word vectors
 
-I used glove.6B.zip, from https://nlp.stanford.edu/projects/glove/, which I unzipped, and then used the 200-dimensional version inside, ie glove.6B.200d.txt
+I am trying using glove.6B.zip, from https://nlp.stanford.edu/projects/glove/, which I unzipped, and then used the 200-dimensional version inside, ie glove.6B.200d.txt
 
-## Tests
+## Differences from Tao's paper
 
-This is mostly just for dev purposes really.  The real testing is, check the model trains etc ok :)
-
-```
-PYTHONPATH=. py.test -sv test/test_myio.py
-```
+- he uses RCNN, I'm just using LSTM
+- probably a bunch of other stuff :P
