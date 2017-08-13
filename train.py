@@ -143,12 +143,13 @@ class Generator(nn.Module):
             rationales[:this_len, n] = torch.masked_select(
                 input[:, n].data, rationale_selected[:, n].data.byte()
             )
-        return rationales
+        return rationales, rationale_lengths
 
 
 def run(
         in_train_file_embedded, aspect_idx, max_train_examples, batch_size, learning_rate,
-        in_validate_file_embedded, max_validate_examples, validate_every):
+        in_validate_file_embedded, max_validate_examples, validate_every,
+        sparsity, coherence):
     train_d = embeddings_helper.load_embedded_data(
         in_filename=in_train_file_embedded,
         max_examples=max_train_examples,
@@ -192,10 +193,13 @@ def run(
             batch_size = bx.size()[1]
 
             print('bx.shape', bx.data.shape)
-            rationales = gen.forward(bx)
+            rationales, rationale_lengths = gen.forward(bx)
             print('rationales.shape', rationales.shape)
             out = enc.forward(rationales)
-            loss = ((by - out) * (by - out)).sum().sqrt()
+            loss_mse = ((by - out) * (by - out)).sum().sqrt()
+            loss_z1 = rationale_lengths.sum()
+            loss_transitions = 0.0
+            loss = loss_mse + sparsity * loss_z1 + coherence * loss_transitions
             loss.backward()
             opt.step()
             epoch_loss += loss.data[0]
@@ -230,6 +234,8 @@ if __name__ == '__main__':
     parser.add_argument('--max-train-examples', type=int, default=0, help='0 means all')
     parser.add_argument('--max-validate-examples', type=int, default=0, help='0 means all')
     parser.add_argument('--validate-every', type=int, default=1, help='after how many epochs run validation')
+    parser.add_argument('--sparsity', type=float, default=0.0003)
+    parser.add_argument('--coherence', type=float, default=2.0)
     parser.add_argument
     args = parser.parse_args()
     run(**args.__dict__)
