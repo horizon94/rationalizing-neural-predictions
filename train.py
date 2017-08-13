@@ -110,12 +110,12 @@ class Generator(nn.Module):
         self.linear = nn.Linear(self.num_hidden * 2, 1)
         self.pad_id = pad_id
 
-    def forward(self, x):
+    def forward(self, input):
         """
         x should be [seq_len][batch_size]
         """
-        seq_len = x.size()[0]
-        batch_size = x.size()[1]
+        seq_len = input.size()[0]
+        batch_size = input.size()[1]
         # we reuse initial_state and initial_cell, if they havent changed
         # since last time.
         if self.initial_state is None or self.initial_state.size()[1] != batch_size:
@@ -129,7 +129,7 @@ class Generator(nn.Module):
                 batch_size,
                 self.num_hidden
             ))
-        x = self.embedding(x)
+        x = self.embedding(input)
         x, _ = self.lstm(x, (self.initial_state, self.initial_cell))
         # x = x[:, -1, :]
         # print('after lstm: x.data.shape', x.data.shape)
@@ -137,19 +137,22 @@ class Generator(nn.Module):
         x = F.sigmoid(x)
         # print('     after linear: x.data.shape', x.data.shape)
         rationale_selected = torch.bernoulli(x).view(seq_len, batch_size)
-        print('    rationale_selected', rationale_selected)
-        rationale_lengths = rationale_selected.sum(dim=0)
-        print('rationale_lengths.size()', rationale_lengths.size())
-        print('rationale_lengths', rationale_lengths)
+        # print('    rationale_selected', rationale_selected)
+        rationale_lengths = rationale_selected.sum(dim=0).int()
+        # print('rationale_lengths.size()', rationale_lengths.size())
+        # print('rationale_lengths', rationale_lengths)
         max_rationale_length = rationale_lengths.max()
-        print('max_rationale_length', max_rationale_length)
-        rationales = torch.zeros(max_rationale_length, batch_size)
-        rationales.fill_(pad_id)
+        # print('max_rationale_length', max_rationale_length)
+        # rationales = torch.zeros(max_rationale_length.data[0], batch_size)
+        rationales = torch.LongTensor(max_rationale_length.data[0], batch_size)
+        rationales.fill_(self.pad_id)
         for n in range(batch_size):
-            rationales[n] = torch.masked_select(
-                x, rationale_selected.byte()
+            this_len = rationale_lengths[n].data[0]
+            # print('this_len', this_len, 'type(this_len)', type(this_len))
+            rationales[:this_len, n] = torch.masked_select(
+                input[:, n].data, rationale_selected[:, n].data.byte()
             )
-        print('rationales', rationales)
+        # print('rationales', rationales)
         return rationales
 
         # now we need to change this into appropriate seqeuences
@@ -205,7 +208,7 @@ def run(
             # rationale_dist = gen.forward(bx)
             print('bx.shape', bx.data.shape)
             rationales = gen.forward(bx)
-            print('rationales.shape', rationales.data.shape)
+            print('rationales.shape', rationales.shape)
             # print('  rationale_selected.shape', rationale_selected.data.shape)
             # rationale_x = bx.masked_select(rationale_selected.byte()).view(-1, batch_size)
             # rationale_len = rationale_x
