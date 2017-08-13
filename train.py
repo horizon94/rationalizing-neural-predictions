@@ -112,8 +112,6 @@ def load_embedded_data(in_filename, max_examples, aspect_idx):
     d['y_aspect'] = torch.zeros(N)
     for n, yv in enumerate(d['y']):
         d['y_aspect'][n] = yv[aspect_idx].item()
-    # d['unk_idx'] = d['idx_by_word']['<unk>']
-    # d['pad_idx'] = d['idx_by_word']['<pad>']
     d['num_hidden'] = d['embedding'].shape[1]
     return d
 
