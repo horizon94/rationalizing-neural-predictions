@@ -200,7 +200,8 @@ def run(
             loss_z1 = rationale_lengths.sum().float()
             loss_transitions = (rationale_selected[1:] - rationale_selected[:-1]).abs().sum().float()
             loss = loss_mse + sparsity * loss_z1 + coherence * loss_transitions
-            loss.backward()
+            rationale_selected.reinforce(-loss)
+            loss.backward(rationale_selected)
             opt.step()
             epoch_loss += loss.data[0]
         print('epoch %s loss %.3f' % (epoch, epoch_loss / num_batches))
