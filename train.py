@@ -198,7 +198,7 @@ def run(
             loss.backward()
             opt.step()
             # print('loss %.3f' % loss)
-        print('epoch %s loss %.3f' % (epoch, epoch_loss))
+        print('epoch %s loss %.3f' % (epoch, epoch_loss / num_batches))
 
         def run_validation():
             batches_x, batches_y = myio.create_batches(
@@ -212,7 +212,7 @@ def run(
                 out = model.forward(bx)
                 loss = ((by - out) * (by - out)).sum().sqrt()
                 epoch_loss += loss.data[0]
-            print('validate epoch %s loss %.3f' % (epoch, epoch_loss))
+            print('validate epoch %s loss %.3f' % (epoch, epoch_loss / num_batches))
 
         if (epoch + 1) % validate_every == 0:
             run_validation()
