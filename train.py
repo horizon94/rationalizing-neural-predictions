@@ -69,8 +69,6 @@ def combine_embeddings(embeddings_list, idx_by_word_list):
     otherwise behavior is undefined
     """
     num_lists = len(embeddings_list)
-    # unk_idx = idx_by_word_list[0]['<unk>']
-    # pad_idx = idx_by_word_list[0]['<pad>']
     idx_by_word_new = {}
     vals = []
     words = []
@@ -95,10 +93,6 @@ def combine_embeddings(embeddings_list, idx_by_word_list):
         'num_hidden': num_hidden,
         'words': words
     }
-    # return new_embedding
-
-        # assert idx_by_word['<unk>'] == unk_idx
-        # assert pad_idx == idx_by_word['<pad>']
 
 
 def rand_uniform(shape, min_value, max_value):
@@ -127,32 +121,6 @@ def load_embedded_data(in_filename, max_examples, aspect_idx):
 def run(
         in_train_file_embedded, aspect_idx, max_train_examples, batch_size, learning_rate,
         in_validate_file_embedded, max_validate_examples, validate_every):
-    # print('loading training data...')
-    # with open(in_train_file_embedded, 'rb') as f:
-    #     d = pickle.load(f)
-    # print(' ... loaded')
-    # # reminder, d is: embedding, idx_by_word, words, x, y, x_idxes
-    # embedding = d['embedding']
-    # y = d['y']
-    # # print('y.shape', y.shape)
-    # # print('y[0]', y[0])
-    # x_idxes = d['x_idxes']
-    # x = d['x']
-    # idx_by_word = d['idx_by_word']
-    # if max_train_examples > 0:
-    #     x_idxes = x_idxes[:max_train_examples]
-    #     y = y[:max_train_examples]
-    #     x = x[:max_train_examples]
-    # N = len(x_idxes)
-    # y_aspect = torch.zeros(N)
-    # for n, yv in enumerate(y):
-    #     y_aspect[n] = yv[aspect_idx].item()
-    # print('y_aspect.shape', y_aspect.shape)
-    # print('y_aspect[:5]', y_aspect[:5])
-    # print('num training examples', len(x_idxes))
-    # # handle unk
-    # unk_idx = idx_by_word['<unk>']
-    # num_hidden = embedding.shape[1]
     train_d = load_embedded_data(
         in_filename=in_train_file_embedded,
         max_examples=max_train_examples,
@@ -171,11 +139,8 @@ def run(
 
     # these numbers, ie -0.05 to 0.05 come from
     # https://github.com/taolei87/rcnn/blob/master/code/nn/initialization.py#L79
-    # embedding_train = train_d['embedding']
     unk_idx = idx_by_word['<unk>']
     pad_idx = idx_by_word['<pad>']
-    # assert validate_d['unk_idx'] == unk_idx
-    # num_hidden = combine['num_hidden']
     embedding[unk_idx] = rand_uniform((num_hidden,), -0.05, 0.05)
     model = Encoder(embeddings=embedding, num_layers=2)
     params = filter(lambda p: p.requires_grad, model.parameters())
@@ -193,11 +158,9 @@ def run(
             by = autograd.Variable(batches_y[b])
             out = model.forward(bx)
             loss = ((by - out) * (by - out)).sum().sqrt()
-            # print('loss', loss)
             epoch_loss += loss.data[0]
             loss.backward()
             opt.step()
-            # print('loss %.3f' % loss)
         print('epoch %s loss %.3f' % (epoch, epoch_loss / num_batches))
 
         def run_validation():
