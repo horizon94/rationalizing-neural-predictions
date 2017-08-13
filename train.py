@@ -111,11 +111,14 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples, batch_size, lear
         num_batches = len(batches_x)
         epoch_loss = 0
         for b in range(num_batches):
+            print('b %s' % b)
+            model.zero_grad()
             bx = autograd.Variable(batches_x[b])
             by = autograd.Variable(batches_y[b])
             out = model.forward(bx)
             loss = ((by - out) * (by - out)).sum().sqrt()
-            epoch_loss += loss
+            # print('loss', loss)
+            epoch_loss += loss.data[0]
             loss.backward()
             opt.step()
             # print('loss %.3f' % loss)
