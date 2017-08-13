@@ -33,6 +33,7 @@ class Encoder(nn.Module):
             num_layers=num_layers)
         self.initial_state = None
         self.initial_cell = None
+        self.linear = nn.Linear(self.hidden_size, 1)  # modeling as a regression
 
     def forward(self, x):
         """
@@ -54,6 +55,8 @@ class Encoder(nn.Module):
             ))
         x = self.embedding(x)
         x = self.lstm(x, (self.initial_state, self.initial_cell))
+        x = self.linear(x)
+
         return x
 
 
@@ -94,11 +97,20 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples, batch_size):
     embedding[unk_idx] = rand_uniform((num_hidden,), -0.05, 0.05)
     model = Encoder(embeddings=embedding, num_layers=2)
     pad_idx = idx_by_word['<pad>']
-    batches_x, batches_y = myio.create_batches(x=x_idxes, y=y_aspect, batch_size=batch_size, padding_id=pad_idx)
-    print('len(batches_x)', len(batches_x))
-    print('len(batches_y)', len(batches_y))
-    print('batches_x[0][:3]', batches_x[0][:3])
-    print('batches_y[0][:3]', batches_y[0][:3])
+    # print('len(batches_x)', len(batches_x))
+    # print('len(batches_y)', len(batches_y))
+    # print('batches_x[0][:3]', batches_x[0][:3])
+    # print('batches_y[0][:3]', batches_y[0][:3])
+    epoch = 0
+    while True:
+        batches_x, batches_y = myio.create_batches(x=x_idxes, y=y_aspect, batch_size=batch_size, padding_id=pad_idx)
+        num_batches = len(batches_x)
+        for b in range(num_batches):
+            bx = batches_x[b]
+            by = batches_y[b]
+            out = model.forward(bx)
+            # loss = 
+        epoch += 1
 
 
 if __name__ == '__main__':
