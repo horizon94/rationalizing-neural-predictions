@@ -6,6 +6,7 @@ that against the test data first
 import torch
 import argparse
 from torch import nn, optim, autograd
+import torch.nn.functional as F
 import myio
 import embeddings_helper
 
@@ -73,6 +74,11 @@ class Generator(nn.Module):
     - bidirectional LSTM, not unidirectional
     - the linear runs at each word position, so there are:
     - ... outputs given for each position
+    - sigmoid squashed
+    - we then sample the words based on the linear output, and return
+      the indexes of the selected words
+
+    (ok, finally, quite a few differences :) )
 
     Some things taht are the same then:
     - embeddings
@@ -84,7 +90,7 @@ class Generator(nn.Module):
         - lstm/rnn, then
         - linear
     """
-    def __init__(self, embeddings, num_layers):
+    def __init__(self, embeddings, num_layers, pad_id):
         super().__init__()
         self.num_hidden = embeddings.shape[1]
         self.num_layers = num_layers
@@ -101,12 +107,14 @@ class Generator(nn.Module):
             bidirectional=True)
         self.initial_state = None
         self.initial_cell = None
-        self.linear = nn.Linear(self.num_hidden, 1)
+        self.linear = nn.Linear(self.num_hidden * 2, 1)
+        self.pad_id = pad_id
 
     def forward(self, x):
         """
         x should be [seq_len][batch_size]
         """
+        seq_len = x.size()[0]
         batch_size = x.size()[1]
         # we reuse initial_state and initial_cell, if they havent changed
         # since last time.
@@ -124,11 +132,29 @@ class Generator(nn.Module):
         x = self.embedding(x)
         x, _ = self.lstm(x, (self.initial_state, self.initial_cell))
         # x = x[:, -1, :]
-        print('after lstm: x.data.shape', x.data.shape)
+        # print('after lstm: x.data.shape', x.data.shape)
         x = self.linear(x)
-        print('     after linear: x.data.shape', x.data.shape)
+        x = F.sigmoid(x)
+        # print('     after linear: x.data.shape', x.data.shape)
+        rationale_selected = torch.bernoulli(x).view(seq_len, batch_size)
+        print('    rationale_selected', rationale_selected)
+        rationale_lengths = rationale_selected.sum(dim=0)
+        print('rationale_lengths.size()', rationale_lengths.size())
+        print('rationale_lengths', rationale_lengths)
+        max_rationale_length = rationale_lengths.max()
+        print('max_rationale_length', max_rationale_length)
+        rationales = torch.zeros(max_rationale_length, batch_size)
+        rationales.fill_(pad_id)
+        for n in range(batch_size):
+            rationales[n] = torch.masked_select(
+                x, rationale_selected.byte()
+            )
+        print('rationales', rationales)
+        return rationales
 
-        return x
+        # now we need to change this into appropriate seqeuences
+        # lets find the lengths of each sequence first
+        # return x
 
 
 def run(
@@ -155,8 +181,11 @@ def run(
     unk_idx = idx_by_word['<unk>']
     pad_idx = idx_by_word['<pad>']
     embedding[unk_idx] = rand_uniform((num_hidden,), -0.05, 0.05)
-    model = Encoder(embeddings=embedding, num_layers=2)
-    params = filter(lambda p: p.requires_grad, model.parameters())
+
+    enc = Encoder(embeddings=embedding, num_layers=2)
+    gen = Generator(embeddings=embedding, num_layers=2, pad_id=pad_idx)
+
+    params = filter(lambda p: p.requires_grad, set(enc.parameters()) | set(gen.parameters()))
     opt = optim.Adam(params=params, lr=learning_rate)
     epoch = 0
     while True:
@@ -166,14 +195,26 @@ def run(
         epoch_loss = 0
         for b in range(num_batches):
             print('b %s' % b)
-            model.zero_grad()
+            gen.zero_grad()
+            enc.zero_grad()
             bx = autograd.Variable(batches_x[b])
             by = autograd.Variable(batches_y[b])
-            out = model.forward(bx)
+            seq_len = bx.size()[0]
+            batch_size = bx.size()[1]
+
+            # rationale_dist = gen.forward(bx)
+            print('bx.shape', bx.data.shape)
+            rationales = gen.forward(bx)
+            print('rationales.shape', rationales.data.shape)
+            # print('  rationale_selected.shape', rationale_selected.data.shape)
+            # rationale_x = bx.masked_select(rationale_selected.byte()).view(-1, batch_size)
+            # rationale_len = rationale_x
+            # print('  rationale_x.shape', rationale_x.data.shape)
+            out = enc.forward(rationales)
             loss = ((by - out) * (by - out)).sum().sqrt()
-            epoch_loss += loss.data[0]
             loss.backward()
             opt.step()
+            epoch_loss += loss.data[0]
         print('epoch %s loss %.3f' % (epoch, epoch_loss / num_batches))
 
         def run_validation():
