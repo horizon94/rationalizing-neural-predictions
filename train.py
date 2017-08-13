@@ -68,6 +68,8 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples):
     # reminder, d is: embedding, idx_by_word, words, x, y, x_idxes
     embedding = d['embedding']
     y = d['y']
+    # print('y.shape', y.shape)
+    # print('y[0]', y[0])
     x_idxes = d['x_idxes']
     x = d['x']
     idx_by_word = d['idx_by_word']
@@ -75,6 +77,12 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples):
         x_idxes = x_idxes[:max_train_examples]
         yu = y[:max_train_examples]
         x = x[:max_train_examples]
+    N = len(x_idxes)
+    y_aspect = torch.zeros(N)
+    for n, yv in enumerate(y):
+        y_aspect[n] = yv[aspect_idx].item()
+    print('y_aspect.shape', y_aspect.shape)
+    print('y_aspect[:5]', y_aspect[:5])
     print('num training examples', len(x_idxes))
     # handle unk
     unk_idx = idx_by_word['<unk>']
@@ -84,6 +92,7 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples):
     # https://github.com/taolei87/rcnn/blob/master/code/nn/initialization.py#L79
     embedding[unk_idx] = rand_uniform((num_hidden,), -0.05, 0.05)
     model = Encoder(embeddings=embedding, num_layers=2)
+    # batches_x, batches_y = create_batches(x, y, batch_size, padding_id, sort=True)
 
 
 if __name__ == '__main__':
