@@ -68,7 +68,7 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
     # vals = []
 
     for n, ex in enumerate(x):
-        for word in ex:
+        for word in ex[:max_len]:
             if word not in idx_by_word:
                 idx_by_word[word] = len(idx_by_word)
                 words.append(word)
@@ -99,7 +99,7 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
         num_words = len(ex)
         idxes = torch.LongTensor(num_words)
         idxes.fill_(0)
-        for i, word in enumerate(ex):
+        for i, word in enumerate(ex[:max_len]):
             if word in idx_by_word:
                 idx = idx_by_word[word]
             else:
