@@ -56,6 +56,10 @@ class Encoder(nn.Module):
         return x
 
 
+def rand_uniform(shape, min_value, max_value):
+    return torch.rand(shape) * (max_value - min_value) + min_value
+
+
 def run(in_train_file_embedded, aspect_idx, max_train_examples):
     print('loading training data...')
     with open(in_train_file_embedded, 'rb') as f:
@@ -66,11 +70,19 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples):
     y = d['y']
     x_idxes = d['x_idxes']
     x = d['x']
+    idx_by_word = d['idx_by_word']
     if max_train_examples > 0:
         x_idxes = x_idxes[:max_train_examples]
         yu = y[:max_train_examples]
         x = x[:max_train_examples]
     print('num training examples', len(x_idxes))
+    # handle unk
+    unk_idx = idx_by_word['<unk>']
+    num_hidden = embedding.shape[1]
+
+    # these numbers, ie -0.05 to 0.05 come from
+    # https://github.com/taolei87/rcnn/blob/master/code/nn/initialization.py#L79
+    embedding[unk_idx] = rand_uniform((num_hidden,), -0.05, 0.05)
     model = Encoder(embeddings=embedding, num_layers=2)
 
 

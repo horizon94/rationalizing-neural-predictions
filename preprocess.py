@@ -67,6 +67,12 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
     words = []
     # vals = []
 
+    # add <unk> and <pad>
+    words.append('<pad>')
+    words.append('<unk>')
+    idx_by_word['<pad>'] = 0
+    idx_by_word['<unk>'] = 1
+
     for n, ex in enumerate(x):
         for word in ex[:max_len]:
             if word not in idx_by_word:
@@ -86,7 +92,12 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
             embedding_vals[idx] = vals
             # break
     # nd = len(embedding_vals[0])
-    embedding = torch.zeros(V + 1, nd)
+    embedding = torch.zeros(V, nd)
+    # add unk and pad
+    # well, pad is easy, so add unk
+    # well... lets leave it for the trainer to do this
+    # unk_idx = idx_by_word['<unk>']
+    # embedding[unk_idx] = torch.rand(nd)
     for i, vals in enumerate(embedding_vals):
         if vals is not None:
             # print('i', i)
@@ -94,6 +105,7 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
             # print('embedding[i]', embedding[i])
     # print('embedding', embedding)
     x_idxes = []
+    unk_idx = idx_by_word['<unk>']
     for n, ex in enumerate(x):
         # idxes = []
         num_words = len(ex)
@@ -103,7 +115,7 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
             if word in idx_by_word:
                 idx = idx_by_word[word]
             else:
-                idx = V
+                idx = unk_idx
             idxes[i] = idx
         x_idxes.append(idxes)
     # x = x_new
