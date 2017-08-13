@@ -60,12 +60,10 @@ import torch
 
 
 def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
-    # words = set()
     x, y = myio.read_annotations(in_train_file)
     print('len(x)', len(x))
     idx_by_word = {}
     words = []
-    # vals = []
 
     # add <unk> and <pad>
     words.append('<pad>')
@@ -78,9 +76,6 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
             if word not in idx_by_word:
                 idx_by_word[word] = len(idx_by_word)
                 words.append(word)
-                # vals.append()
-            # words.add(word)
-        # break
 
     V = len(words)
     it = myio.load_embedding_iterator(word_vectors)
@@ -90,24 +85,16 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
             idx = idx_by_word[word]
             nd = len(vals)
             embedding_vals[idx] = vals
-            # break
-    # nd = len(embedding_vals[0])
     embedding = torch.zeros(V, nd)
     # add unk and pad
     # well, pad is easy, so add unk
     # well... lets leave it for the trainer to do this
-    # unk_idx = idx_by_word['<unk>']
-    # embedding[unk_idx] = torch.rand(nd)
     for i, vals in enumerate(embedding_vals):
         if vals is not None:
-            # print('i', i)
             embedding[i] = vals
-            # print('embedding[i]', embedding[i])
-    # print('embedding', embedding)
     x_idxes = []
     unk_idx = idx_by_word['<unk>']
     for n, ex in enumerate(x):
-        # idxes = []
         num_words = len(ex)
         idxes = torch.LongTensor(num_words)
         idxes.fill_(0)
@@ -118,7 +105,6 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
                 idx = unk_idx
             idxes[i] = idx
         x_idxes.append(idxes)
-    # x = x_new
 
     d = {
         'embedding': embedding,
@@ -130,16 +116,6 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
     }
     with open(out_train_file_embedded, 'wb') as f:
         pickle.dump(d, f)
-
-
-        # print('ex', ex)
-        # if n >= 4:
-        # break/
-    # for i in range(10):
-        # print(' '.join(y[i]))
-        # print(y[i])
-        # print(' '.join(x[i]))
-    # print('x[:5]', x[:5])
 
 
 if __name__ == '__main__':
