@@ -133,7 +133,8 @@ class Generator(nn.Module):
         x, _ = self.lstm(x, (self.initial_state, self.initial_cell))
         x = self.linear(x)
         x = F.sigmoid(x)
-        rationale_selected = torch.bernoulli(x).view(seq_len, batch_size)
+        rationale_selected_node = torch.bernoulli(x)
+        rationale_selected = rationale_selected_node.view(seq_len, batch_size)
         rationale_lengths = rationale_selected.sum(dim=0).int()
         max_rationale_length = rationale_lengths.max()
         rationales = torch.LongTensor(max_rationale_length.data[0], batch_size)
@@ -143,7 +144,7 @@ class Generator(nn.Module):
             rationales[:this_len, n] = torch.masked_select(
                 input[:, n].data, rationale_selected[:, n].data.byte()
             )
-        return rationale_selected, rationales, rationale_lengths
+        return rationale_selected_node, rationale_selected, rationales, rationale_lengths
 
 
 def run(
@@ -193,15 +194,15 @@ def run(
             batch_size = bx.size()[1]
 
             print('bx.shape', bx.data.shape)
-            rationale_selected, rationales, rationale_lengths = gen.forward(bx)
+            rationale_selected_node, rationale_selected, rationales, rationale_lengths = gen.forward(bx)
             print('rationales.shape', rationales.shape)
             out = enc.forward(rationales)
             loss_mse = ((by - out) * (by - out)).sum().sqrt()
             loss_z1 = rationale_lengths.sum().float()
             loss_transitions = (rationale_selected[1:] - rationale_selected[:-1]).abs().sum().float()
             loss = loss_mse + sparsity * loss_z1 + coherence * loss_transitions
-            rationale_selected.reinforce(-loss)
-            loss.backward(rationale_selected)
+            rationale_selected_node.reinforce(-loss.data[0])
+            loss.backward(rationale_selected_node)
             opt.step()
             epoch_loss += loss.data[0]
         print('epoch %s loss %.3f' % (epoch, epoch_loss / num_batches))
