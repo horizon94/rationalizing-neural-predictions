@@ -131,33 +131,19 @@ class Generator(nn.Module):
             ))
         x = self.embedding(input)
         x, _ = self.lstm(x, (self.initial_state, self.initial_cell))
-        # x = x[:, -1, :]
-        # print('after lstm: x.data.shape', x.data.shape)
         x = self.linear(x)
         x = F.sigmoid(x)
-        # print('     after linear: x.data.shape', x.data.shape)
         rationale_selected = torch.bernoulli(x).view(seq_len, batch_size)
-        # print('    rationale_selected', rationale_selected)
         rationale_lengths = rationale_selected.sum(dim=0).int()
-        # print('rationale_lengths.size()', rationale_lengths.size())
-        # print('rationale_lengths', rationale_lengths)
         max_rationale_length = rationale_lengths.max()
-        # print('max_rationale_length', max_rationale_length)
-        # rationales = torch.zeros(max_rationale_length.data[0], batch_size)
         rationales = torch.LongTensor(max_rationale_length.data[0], batch_size)
         rationales.fill_(self.pad_id)
         for n in range(batch_size):
             this_len = rationale_lengths[n].data[0]
-            # print('this_len', this_len, 'type(this_len)', type(this_len))
             rationales[:this_len, n] = torch.masked_select(
                 input[:, n].data, rationale_selected[:, n].data.byte()
             )
-        # print('rationales', rationales)
         return rationales
-
-        # now we need to change this into appropriate seqeuences
-        # lets find the lengths of each sequence first
-        # return x
 
 
 def run(
@@ -205,14 +191,9 @@ def run(
             seq_len = bx.size()[0]
             batch_size = bx.size()[1]
 
-            # rationale_dist = gen.forward(bx)
             print('bx.shape', bx.data.shape)
             rationales = gen.forward(bx)
             print('rationales.shape', rationales.shape)
-            # print('  rationale_selected.shape', rationale_selected.data.shape)
-            # rationale_x = bx.masked_select(rationale_selected.byte()).view(-1, batch_size)
-            # rationale_len = rationale_x
-            # print('  rationale_x.shape', rationale_x.data.shape)
             out = enc.forward(rationales)
             loss = ((by - out) * (by - out)).sum().sqrt()
             loss.backward()
