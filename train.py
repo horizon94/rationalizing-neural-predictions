@@ -27,22 +27,23 @@ class Encoder(nn.Module):
             self.num_hidden
         )
         self.embedding.weight.data = embeddings
+        self.embedding.weight.requires_grad = False
         self.lstm = nn.LSTM(
             input_size=self.num_hidden,
             hidden_size=self.num_hidden,
             num_layers=num_layers)
         self.initial_state = None
         self.initial_cell = None
-        self.linear = nn.Linear(self.hidden_size, 1)  # modeling as a regression
+        self.linear = nn.Linear(self.num_hidden, 1)  # modeling as a regression
 
     def forward(self, x):
         """
         x should be [seq_len][batch_size]
         """
-        batch_size = x.shape[0]
+        batch_size = x.size()[1]
         # we reuse initial_state and initial_cell, if they havent changed
         # since last time.
-        if self.initial_state is None or self.initial_state.shape[1] != batch_size:
+        if self.initial_state is None or self.initial_state.size()[1] != batch_size:
             self.initial_state = autograd.Variable(torch.zeros(
                 self.num_layers,
                 batch_size,
@@ -54,7 +55,8 @@ class Encoder(nn.Module):
                 self.num_hidden
             ))
         x = self.embedding(x)
-        x = self.lstm(x, (self.initial_state, self.initial_cell))
+        x, _ = self.lstm(x, (self.initial_state, self.initial_cell))
+        x = x[:, -1, :]
         x = self.linear(x)
 
         return x
@@ -64,7 +66,7 @@ def rand_uniform(shape, min_value, max_value):
     return torch.rand(shape) * (max_value - min_value) + min_value
 
 
-def run(in_train_file_embedded, aspect_idx, max_train_examples, batch_size):
+def run(in_train_file_embedded, aspect_idx, max_train_examples, batch_size, learning_rate):
     print('loading training data...')
     with open(in_train_file_embedded, 'rb') as f:
         d = pickle.load(f)
@@ -101,15 +103,23 @@ def run(in_train_file_embedded, aspect_idx, max_train_examples, batch_size):
     # print('len(batches_y)', len(batches_y))
     # print('batches_x[0][:3]', batches_x[0][:3])
     # print('batches_y[0][:3]', batches_y[0][:3])
+    params = filter(lambda p: p.requires_grad, model.parameters())
+    opt = optim.Adam(params=params, lr=learning_rate)
     epoch = 0
     while True:
         batches_x, batches_y = myio.create_batches(x=x_idxes, y=y_aspect, batch_size=batch_size, padding_id=pad_idx)
         num_batches = len(batches_x)
+        epoch_loss = 0
         for b in range(num_batches):
-            bx = batches_x[b]
-            by = batches_y[b]
+            bx = autograd.Variable(batches_x[b])
+            by = autograd.Variable(batches_y[b])
             out = model.forward(bx)
-            # loss = 
+            loss = ((by - out) * (by - out)).sum().sqrt()
+            epoch_loss += loss
+            loss.backward()
+            opt.step()
+            # print('loss %.3f' % loss)
+        print('epoch %s loss %.3f' % (epoch, epoch_loss))
         epoch += 1
 
 
@@ -118,6 +128,7 @@ if __name__ == '__main__':
     parser.add_argument('--in-train-file-embedded', type=str, default='data/reviews.aspect1.train.emb')
     parser.add_argument('--aspect-idx', type=int, default=0)
     parser.add_argument('--batch-size', type=int, default=256)
+    parser.add_argument('--learning-rate', type=float, default=0.001)
     parser.add_argument('--max-train-examples', type=int, default=0, help='0 means all')
     parser.add_argument
     args = parser.parse_args()
