@@ -17,6 +17,9 @@ import embeddings_helper
 import rationale_helper
 
 
+max_len = 256  # this should be fixed to not be a constant here...
+
+
 def rand_uniform(shape, min_value, max_value):
     return torch.rand(shape) * (max_value - min_value) + min_value
 
@@ -222,6 +225,12 @@ def run(
         epoch_loss = 0
         print('    t', end='', flush=True)
         epoch_start = time.time()
+        bx_cuda_buf = torch.LongTensor(max_len, batch_size)
+        by_cuda_buf = torch.FloatTensor(batch_size)
+        if use_cuda:
+            bx_cuda_buf = bx_cuda_buf.cuda()
+            by_cuda_buf = by_cuda_buf.cuda()
+            # by_cuda = autograd.Variable(by_cuda.cuda())
         for b in range(num_batches):
             # print('b %s' % b)
             print('.', end='', flush=True)
@@ -230,19 +239,31 @@ def run(
                 print('    t', end='', flush=True)
             gen.zero_grad()
             enc.zero_grad()
-            bx = autograd.Variable(batches_x[b])
-            by = autograd.Variable(batches_y[b])
-            if use_cuda:
-                bx = bx.cuda()
-                by = by.cuda()
+            bx = batches_x[b]
+            by = batches_y[b]
+            # this_seq_len = bx.size()[0]
             seq_len = bx.size()[0]
             batch_size = bx.size()[1]
 
+            # print('bx.size()', bx.size())
+            bx_cuda = autograd.Variable(bx_cuda_buf[:seq_len, :batch_size])
+            by_cuda = autograd.Variable(by_cuda_buf[:batch_size])
+            # print('bx_cuda.size()', bx_cuda.size())
+            bx_cuda.data.copy_(bx)
+            by_cuda.data.copy_(by)
+            # if use_cuda:
+            #     if bx_cuda is None:
+            #         bx_cuda = autograd.Variable(bx.cuda())
+            #         by_cuda = autograd.Variable(by.cuda())
+            #     else:
+            #         bx_cuda.data.copy_(bx)
+            #         by_cuda.data.copy_(by)
+
             # print('bx.shape', bx.data.shape)
-            rationale_selected_node, rationale_selected, rationales, rationale_lengths = gen.forward(bx)
+            rationale_selected_node, rationale_selected, rationales, rationale_lengths = gen.forward(bx_cuda)
             # print('rationales.shape', rationales.shape)
             out = enc.forward(rationales)
-            loss_mse = ((by - out) * (by - out)).sum().sqrt()
+            loss_mse = ((by_cuda - out) * (by_cuda - out)).sum().sqrt()
             loss_z1 = rationale_lengths.sum().float()
             loss_transitions = (rationale_selected[1:] - rationale_selected[:-1]).abs().sum().float()
             loss = loss_mse + sparsity * loss_z1 + coherence * loss_transitions
@@ -258,20 +279,38 @@ def run(
             # num_batches = len(batches_x)
             epoch_loss = 0
             print('    v', end='', flush=True)
+            # bx_cuda = None
+            # by_cuda = None
             for b in range(validate_num_batches):
                 # print('b %s' % b)
                 print('.', end='', flush=True)
                 if b != 0 and b % 70 == 0:
                     print(b)
                     print('    v', end='', flush=True)
-                bx = autograd.Variable(validate_batches_x[b])
-                by = autograd.Variable(validate_batches_y[b])
-                if use_cuda:
-                    bx = bx.cuda()
-                    by = by.cuda()
-                rationale_selected_node, rationale_selected, rationales, rationale_lengths = gen.forward(bx)
+                bx = validate_batches_x[b]
+                by = validate_batches_y[b]
+
+                seq_len = bx.size()[0]
+                batch_size = bx.size()[1]
+
+                bx_cuda = autograd.Variable(bx_cuda_buf[:seq_len, :batch_size])
+                by_cuda = autograd.Variable(by_cuda_buf[:batch_size])
+                bx_cuda.data.copy_(bx)
+                by_cuda.data.copy_(by)
+
+                # if use_cuda:
+                #     bx = bx.cuda()
+                #     by = by.cuda()
+                # if use_cuda:
+                # if bx_cuda is None:
+                #     bx_cuda = autograd.Variable(bx.cuda())
+                #     by_cuda = autograd.Variable(by.cuda())
+                # else:
+                #     bx_cuda.data.copy_(bx)
+                #     by_cuda.data.copy_(by)
+                rationale_selected_node, rationale_selected, rationales, rationale_lengths = gen.forward(bx_cuda)
                 out = enc.forward(rationales)
-                loss = ((by - out) * (by - out)).sum().sqrt()
+                loss = ((by_cuda - out) * (by_cuda - out)).sum().sqrt()
                 # print some sample rationales...
                 for idx in sample_idxes_by_batch[b]:
                     # print('rationales.shape', rationales.size(), 'idx', idx)

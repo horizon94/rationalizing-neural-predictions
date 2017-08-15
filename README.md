@@ -12,6 +12,7 @@ I am trying using glove.6B.zip, from https://nlp.stanford.edu/projects/glove/, w
 
 - he uses RCNN, I'm just using LSTM
 - RNP includes a 'dependent' implementation of the generator: this repo provides only the 'independent' version
+- no dropout (yet)
 - probably a bunch of other stuff :P
 
 ## To use
