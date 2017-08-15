@@ -270,9 +270,9 @@ def run(
                 loss = ((by - out) * (by - out)).sum().sqrt()
                 # print some sample rationales...
                 for idx in sample_idxes_by_batch[b]:
-                    print('rationales.shape', rationales.size(), 'idx', idx)
+                    # print('rationales.shape', rationales.size(), 'idx', idx)
                     rationale = rationales[:, idx]
-                    print('rationale.shape', rationale.size())
+                    # print('rationale.shape', rationale.size())
                     rationale_str = rationale_helper.rationale_to_string(words=words, rationale=rationale)
                     print('    [%s]' % rationale_str)
                 epoch_loss += loss.data[0]
