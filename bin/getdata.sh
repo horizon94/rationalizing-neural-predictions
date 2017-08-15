@@ -18,6 +18,10 @@ for n in 1 2 3; do {
 
 maybe_wget http://people.csail.mit.edu/taolei/beer/select.py select.py
 
+maybe_wget http://nlp.stanford.edu/data/glove.6B.zip glove.6B.zip
+
+unzip glove.6B.zip
+
 for filename in $(ls *.gz); do {
     gunzip -k ${filename}
 } done
