@@ -10,6 +10,8 @@ from collections import defaultdict
 import numpy as np
 from torch import nn, optim, autograd
 import torch.nn.functional as F
+import gc
+import time
 import myio
 import embeddings_helper
 import rationale_helper
@@ -219,6 +221,7 @@ def run(
         num_batches = len(batches_x)
         epoch_loss = 0
         print('    t', end='', flush=True)
+        epoch_start = time.time()
         for b in range(num_batches):
             # print('b %s' % b)
             print('.', end='', flush=True)
@@ -249,6 +252,7 @@ def run(
             # epoch_loss += loss.data[0]
             epoch_loss += loss_mse.data[0]
         print(num_batches)
+        epoch_train_time = time.time() - epoch_start
 
         def run_validation():
             # num_batches = len(batches_x)
@@ -281,10 +285,13 @@ def run(
 
         if (epoch + 1) % validate_every == 0:
             validation_loss = run_validation()
-            print('epoch %s train loss %.3f validate loss %.3f' % (epoch, epoch_loss / num_batches, validation_loss))
+            print('epoch %s train loss %.3f traintime %s validate loss %.3f' % (
+                epoch, epoch_loss / num_batches, int(epoch_train_time), validation_loss))
             # print('    validate loss %.3f' % (epoch_loss / num_batches))
         else:
-            print('epoch %s train loss %.3f' % (epoch, epoch_loss / num_batches))
+            print('epoch %s train loss %.3f traintime %s' % (epoch, epoch_loss / num_batches, int(epoch_train_time)))
+        gc.collect()
+        gc.collect()
         epoch += 1
 
 
