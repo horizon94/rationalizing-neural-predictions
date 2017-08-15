@@ -3,12 +3,16 @@ Let's try with getting an rnn encoder to predict the outputs, and then check
 that against the test data first
 """
 
+from __future__ import print_function, division
 import torch
 import argparse
+from collections import defaultdict
+import numpy as np
 from torch import nn, optim, autograd
 import torch.nn.functional as F
 import myio
 import embeddings_helper
+import rationale_helper
 
 
 def rand_uniform(shape, min_value, max_value):
@@ -160,7 +164,8 @@ class Generator(nn.Module):
 def run(
         in_train_file_embedded, aspect_idx, max_train_examples, batch_size, learning_rate,
         in_validate_file_embedded, max_validate_examples, validate_every,
-        sparsity, coherence, use_cuda):
+        sparsity, coherence, use_cuda,
+        num_printed_rationales):
     train_d = embeddings_helper.load_embedded_data(
         in_filename=in_train_file_embedded,
         max_examples=max_train_examples,
@@ -183,6 +188,20 @@ def run(
     pad_idx = idx_by_word['<pad>']
     torch.manual_seed(123)
     embedding[unk_idx] = rand_uniform((num_hidden,), -0.05, 0.05)
+
+    # draw validate batches now, since they should be fixed
+    torch.manual_seed(124)
+    validate_batches_x, validate_batches_y = myio.create_batches(
+        x=validate_d['x_idxes'], y=validate_d['y_aspect'], batch_size=batch_size, padding_id=pad_idx)
+    validate_num_batches = len(validate_batches_x)
+    sample_idxes = np.random.choice(
+        validate_num_batches * batch_size, num_printed_rationales, replace=False)
+    sample_idxes_by_batch = defaultdict(list)
+    for i in range(num_printed_rationales):
+        sample_idx = sample_idxes[i]
+        b = sample_idx // batch_size
+        b_idx = sample_idx % batch_size
+        sample_idxes_by_batch[b].append(b_idx)
 
     enc = Encoder(embeddings=embedding, num_layers=2)
     gen = Generator(embeddings=embedding, num_layers=2, pad_id=pad_idx)
@@ -232,28 +251,33 @@ def run(
         print(num_batches)
 
         def run_validation():
-            batches_x, batches_y = myio.create_batches(
-                x=validate_d['x_idxes'], y=validate_d['y_aspect'], batch_size=batch_size, padding_id=pad_idx)
-            num_batches = len(batches_x)
+            # num_batches = len(batches_x)
             epoch_loss = 0
             print('    v', end='', flush=True)
-            for b in range(num_batches):
+            for b in range(validate_num_batches):
                 # print('b %s' % b)
                 print('.', end='', flush=True)
                 if (b + 1) % 70 == 0:
                     print(b)
                     print('    v', end='', flush=True)
-                bx = autograd.Variable(batches_x[b])
-                by = autograd.Variable(batches_y[b])
+                bx = autograd.Variable(validate_batches_x[b])
+                by = autograd.Variable(validate_batches_y[b])
                 if use_cuda:
                     bx = bx.cuda()
                     by = by.cuda()
                 rationale_selected_node, rationale_selected, rationales, rationale_lengths = gen.forward(bx)
                 out = enc.forward(rationales)
                 loss = ((by - out) * (by - out)).sum().sqrt()
+                # print some sample rationales...
+                for idx in sample_idxes_by_batch[b]:
+                    print('rationales.shape', rationales.size(), 'idx', idx)
+                    rationale = rationales[:, idx]
+                    print('rationale.shape', rationale.size())
+                    rationale_str = rationale_helper.rationale_to_string(words=words, rationale=rationale)
+                    print('    [%s]' % rationale_str)
                 epoch_loss += loss.data[0]
-            print(num_batches)
-            return epoch_loss / num_batches
+            print(validate_num_batches)
+            return epoch_loss / validate_num_batches
 
         if (epoch + 1) % validate_every == 0:
             validation_loss = run_validation()
@@ -276,6 +300,7 @@ if __name__ == '__main__':
     parser.add_argument('--validate-every', type=int, default=1, help='after how many epochs run validation')
     parser.add_argument('--sparsity', type=float, default=0.0003)
     parser.add_argument('--coherence', type=float, default=2.0)
+    parser.add_argument('--num-printed-rationales', type=int, default=4)
     parser.add_argument('--use-cuda', action='store_true')
     parser.add_argument
     args = parser.parse_args()
