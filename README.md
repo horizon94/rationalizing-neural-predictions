@@ -34,7 +34,7 @@ python preprocess.py --in-train-file data/reviews.aspect1.heldout.txt.gz --out-t
 ```
 - run `train.py` (in progress...)
 ```
-python train.py --use-cuda --max-train-examples 1024 --max-validate-examples 256
+python train.py --use-cuda --max-validate-examples 256
 ```
 (you can vary the number of trainin/test examples, depending on how confident it's working. for now I'm still fixing stuff :P)
 

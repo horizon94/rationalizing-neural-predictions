@@ -222,7 +222,7 @@ def run(
         for b in range(num_batches):
             # print('b %s' % b)
             print('.', end='', flush=True)
-            if (b + 1) % 70 == 0:
+            if b != 0 and b % 70 == 0:
                 print(b)
                 print('    t', end='', flush=True)
             gen.zero_grad()
@@ -257,7 +257,7 @@ def run(
             for b in range(validate_num_batches):
                 # print('b %s' % b)
                 print('.', end='', flush=True)
-                if (b + 1) % 70 == 0:
+                if b != 0 and b % 70 == 0:
                     print(b)
                     print('    v', end='', flush=True)
                 bx = autograd.Variable(validate_batches_x[b])
