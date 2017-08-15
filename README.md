@@ -16,7 +16,15 @@ I am trying using glove.6B.zip, from https://nlp.stanford.edu/projects/glove/, w
 
 ## To use
 
-- install pytorch 0.2
+- install pytorch 0.2, and activate it, eg, on Ubuntu:
+```
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh -b -p ~/conda
+source ~/conda/bin/activate
+conda create -n pytorch
+source activate pytorch
+conda install pytorch cuda80 -c soumith
+```
 - run `bin/getdata.sh` to download the beer reviews data, and glove vectors
 - run `preprocess.py` to combine the beer review data and the glove vectors:
 ```
@@ -33,6 +41,7 @@ python train.py --use-cuda --max-train-examples 1024 --max-validate-examples 256
 ## Environment
 
 Tested/developed(ing) using:
-- ~~Mac OS X Sierra~~ aws ec2 g3.xlarge instance (NVIDIA M60 gpu)
+- ~~Mac OS X Sierra~~ Ubuntu 16.04
+- NVIDIA M60 gpu, (using aws ec2 g3.xlarge instance)
 - Python 3.6.2
 - pytorch 0.2
