@@ -180,11 +180,16 @@ def run(
         max_examples=max_validate_examples,
         aspect_idx=aspect_idx)
     combined = embeddings_helper.combine_embeddings(
-        embeddings_list=[train_d['embedding'], validate_d['embedding']],
-        idx_by_word_list=[train_d['idx_by_word'], validate_d['idx_by_word']])
+        embedding_list=[train_d['embedding'], validate_d['embedding']],
+        idx_by_word_list=[train_d['idx_by_word'], validate_d['idx_by_word']],
+        words_lists=[train_d['words'], validate_d['words']],
+        x_idxes_list=[train_d['x_idxes'], validate_d['x_idxes']])
     embedding = combined['embedding']
     num_hidden = combined['num_hidden']
     idx_by_word = combined['idx_by_word']
+    x_idxes_list = combined['x_idxes_list']
+    train_d['x_idxes'] = x_idxes_list[0]
+    validate_d['x_idxes'] = x_idxes_list[1]
     words = combined['words']
 
     # these numbers, ie -0.05 to 0.05 come from
