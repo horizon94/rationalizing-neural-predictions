@@ -13,6 +13,7 @@ I am trying using glove.6B.zip, from https://nlp.stanford.edu/projects/glove/, w
 - he uses RCNN, I'm just using LSTM
 - RNP includes a 'dependent' implementation of the generator: this repo provides only the 'independent' version
 - no dropout (yet)
+- I'm training using `batch-size` 128 (though you can try with batch size 256, if your GPU has enough memory, of course)
 - probably a bunch of other stuff :P
 
 ## To use
@@ -35,7 +36,7 @@ python preprocess.py --in-train-file data/reviews.aspect1.heldout.txt.gz --out-t
 ```
 - run `train.py` (in progress...)
 ```
-python train.py --use-cuda --max-validate-examples 256
+python train.py --use-cuda --max-validate-examples 128 --batch-size 128
 ```
 (you can vary the number of trainin/test examples, depending on how confident it's working. for now I'm still fixing stuff :P)
 
