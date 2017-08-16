@@ -169,7 +169,7 @@ class Generator(nn.Module):
 def run(
         in_train_file_embedded, aspect_idx, max_train_examples, batch_size, learning_rate,
         in_validate_file_embedded, max_validate_examples, validate_every,
-        sparsity, coherence, use_cuda,
+        sparsity, coherence, use_cuda, debug_print_training_examples,
         num_printed_rationales):
     train_d = embeddings_helper.load_embedded_data(
         in_filename=in_train_file_embedded,
@@ -235,7 +235,7 @@ def run(
             # print('b %s' % b)
             print('.', end='', flush=True)
             if b != 0 and b % 70 == 0:
-                print(b)
+                print('%s/%s' % (b, num_batches))
                 print('    t', end='', flush=True)
             gen.zero_grad()
             enc.zero_grad()
@@ -244,6 +244,9 @@ def run(
             # this_seq_len = bx.size()[0]
             seq_len = bx.size()[0]
             batch_size = bx.size()[1]
+
+            if debug_print_training_examples:
+                print(rationale_helper.rationale_to_string(words, bx[0]))
 
             # print('bx.size()', bx.size())
             bx_cuda = autograd.Variable(bx_cuda_buf[:seq_len, :batch_size])
@@ -272,7 +275,7 @@ def run(
             opt.step()
             # epoch_loss += loss.data[0]
             epoch_loss += loss_mse.data[0]
-        print(num_batches)
+        print('%s/%s' % (num_batches, num_batches))
         epoch_train_time = time.time() - epoch_start
 
         def run_validation():
@@ -285,7 +288,7 @@ def run(
                 # print('b %s' % b)
                 print('.', end='', flush=True)
                 if b != 0 and b % 70 == 0:
-                    print(b)
+                    print('%s/%s' % (b, validate_num_batches))
                     print('    v', end='', flush=True)
                 bx = validate_batches_x[b]
                 by = validate_batches_y[b]
@@ -319,7 +322,7 @@ def run(
                     rationale_str = rationale_helper.rationale_to_string(words=words, rationale=rationale)
                     print('    [%s]' % rationale_str)
                 epoch_loss += loss.data[0]
-            print(validate_num_batches)
+            print('%s/%s' % (validate_num_batches, validate_num_batches))
             return epoch_loss / validate_num_batches
 
         if (epoch + 1) % validate_every == 0:
@@ -347,6 +350,7 @@ if __name__ == '__main__':
     parser.add_argument('--sparsity', type=float, default=0.0003)
     parser.add_argument('--coherence', type=float, default=2.0)
     parser.add_argument('--num-printed-rationales', type=int, default=4)
+    parser.add_argument('--debug-print-training-examples', action='store_true', help='just to make sure decoding words is ok...')
     parser.add_argument('--use-cuda', action='store_true')
     parser.add_argument
     args = parser.parse_args()
