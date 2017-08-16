@@ -3,7 +3,7 @@ import torch
 import pickle
 
 
-def combine_embeddings(embedding_list, idx_by_word_list, x_idxes_list):
+def combine_embeddings(embedding_list, words_lists, idx_by_word_list, x_idxes_list):
     """
     any duplicates are assumed to be identical, ie if a word
     exists in both embeddings, the embedding should already be identical,
@@ -34,12 +34,13 @@ def combine_embeddings(embedding_list, idx_by_word_list, x_idxes_list):
         x_idxes_new = []
         for j, ex in enumerate(x_idxes):
             # print('ex[:6]', ex[:6])
-            ex_new = ex.clone()
+            # ex_new = ex.clone()
+            ex_new = torch.LongTensor(*ex.shape)
             # print('ex_new[:6]', ex_new[:6])
             # print('ex.shape', ex.shape)
             for idx in range(ex.shape[0]):
                 word_idx = ex[idx]
-                word = words[word_idx]
+                word = words_lists[i][word_idx]
                 new_idx = idx_by_word_new[word]
                 ex_new[idx] = new_idx
                 # if idx < 6:

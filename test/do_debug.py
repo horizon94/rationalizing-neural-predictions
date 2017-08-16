@@ -50,7 +50,8 @@ def print_combined_samples(emb_files, num_samples, seed):
         c = embeddings_helper.combine_embeddings(
             embedding_list=[embedding, d_next['embedding']],
             idx_by_word_list=[idx_by_word, d_next['idx_by_word']],
-            x_idxes_list=x_idxes_list + [d_next['x_idxes']])
+            x_idxes_list=x_idxes_list + [d_next['x_idxes']],
+            words_lists=[words, d_next['words']])
         idx_by_word = c['idx_by_word']
         words = c['words']
         x_idxes_list = c['x_idxes_list']

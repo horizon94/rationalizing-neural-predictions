@@ -104,6 +104,7 @@ def run(in_train_file, out_train_file_embedded, word_vectors, max_len):
             else:
                 idx = unk_idx
             idxes[i] = idx
+        # print('idxes.shape', idxes.shape)
         x_idxes.append(idxes)
 
     d = {
