@@ -1,5 +1,5 @@
 """
-Various debug/diagnostics things. Sort of like unit tests, but, well, more like pre-cursors
+Various debug/diagnostics things. Sort of like unit tests, but, well, more like precursors
 to unit tests
 """
 from __future__ import print_function, division
@@ -46,12 +46,14 @@ def print_combined_samples(emb_files, num_samples, seed):
         with open(emb_file, 'rb') as f:
             d_next = pickle.load(f)
         print(' ... loaded')
-        x_idxes_list.append(d_next['x_idxes'])
+        # x_idxes_list.append(d_next['x_idxes'])
         c = embeddings_helper.combine_embeddings(
-            [embedding, d_next['embedding']],
-            [idx_by_word, d_next['idx_by_word']])
+            embedding_list=[embedding, d_next['embedding']],
+            idx_by_word_list=[idx_by_word, d_next['idx_by_word']],
+            x_idxes_list=x_idxes_list + [d_next['x_idxes']])
         idx_by_word = c['idx_by_word']
         words = c['words']
+        x_idxes_list = c['x_idxes_list']
     for j, x_idxes in enumerate(x_idxes_list):
         print('list %s' % j)
         N = len(x_idxes)
